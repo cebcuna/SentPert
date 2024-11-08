@@ -1,0 +1,831 @@
+---
+title: "Proyecto"
+author: "Carlos Brenes"
+date: "2024-10-15"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Instalación de paquetes
+install.packages("mlr")
+install.packages("openxlsx")
+install.packages("mvnormalTest")
+install.packages("sjPlot")
+install.packages("lavaan")
+install.packages("semTools")
+install.packages("semPlot")
+install.packages("tidySEM")
+install.packages("ggpubr")
+install.packages("DescTools")
+install.packages("FactoMineR")
+install.packages("factoextra")
+install.packages("effsize")
+install.packages("rstatix")
+install.packages("coin")
+install.packages("gplots")
+install.packages("gmodels")
+install.packages("pastecs")
+install.packages("writexl")
+```
+
+```{r}
+# Activación de paquetes
+library(readxl)
+library(tidyverse)
+library(skimr)
+library(mlr)
+library(openxlsx)
+library(psych)
+library(scales)
+library(mvnormalTest)
+library(GPArotation)
+library(sjPlot)
+library(lavaan)
+library(semTools)
+library(semPlot)
+library(tidySEM)
+library(Hmisc)
+library(nortest)
+library(ggplot2)
+library(ggpubr)
+library(DescTools)
+library(FactoMineR)
+library(factoextra)
+library(effsize)
+library(rstatix)
+library(coin)
+library(gplots)
+library(gmodels)
+```
+
+```{r}
+# Limpia de base
+base <- read_excel("base.xlsx")
+
+colnames(base)[4] <- 'genero'
+colnames(base)[2] <- 'universidad'
+colnames(base)[3] <- 'ingreso'
+colnames(base)[5] <- 'zona'
+colnames(base)[6] <- 'area'
+colnames(base)[7] <- 'beca'
+colnames(base)[8] <- 'AF1'
+colnames(base)[9] <- 'AF2'
+colnames(base)[10] <- 'AF3'
+colnames(base)[11] <- 'AF4'
+colnames(base)[12] <- 'AF5'
+colnames(base)[13] <- 'AF6'
+colnames(base)[14] <- 'AF7'
+colnames(base)[15] <- 'AF8'
+colnames(base)[16] <- 'S1'
+colnames(base)[17] <- 'S2'
+colnames(base)[18] <- 'S3'
+colnames(base)[19] <- 'S4'
+colnames(base)[20] <- 'AC1'
+colnames(base)[21] <- 'AC2'
+colnames(base)[22] <- 'AC3'
+colnames(base)[23] <- 'AC4'
+colnames(base)[24] <- 'F1'
+colnames(base)[25] <- 'F2'
+colnames(base)[26] <- 'F3'
+colnames(base)[27] <- 'F4'
+
+base$genero[base$genero == 'Femenino'] <- "F"
+base$genero[base$genero == 'Masculino'] <- "M"
+
+base$area[base$area == 'Ciencias básicas (Matemática, Química, Biología, Física, etc.)'] <- 'Ciencias básicas'
+base$area[base$area == 'Ciencias sociales (Sociología, Psicología, Educación, Administración, etc.)'] <- 'Ciencias sociales'
+base$area[base$area == 'Artes y humanidades (Arte Escénico, Música, Filosofía, Literatura, etc.)'] <- 'Artes y humanidades'
+base$area[base$area == 'Ingeniería (Arquitectura, Informática, Ingeniería Civil, Ingeniería Ambiental, etc.)'] <- 'Ingeniería'
+
+base$universidad[base$universidad == 'Universidad Nacional de Costa Rica'] <- 'UNA'
+base$universidad[base$universidad == 'Instituto Tecnológico de Monterrey'] <- 'TEC'
+base$universidad[base$universidad == 'Universidad San Francisco de Quito'] <- 'USFQ'
+```
+
+```{r}
+# Redefinición (requiere tidyverse)
+base <- mutate_at(base,vars(8:27),as.numeric)
+```
+
+```{r}
+# Filtro por universidad (requiere tidyverse)
+
+mexico<-base %>%
+  filter(universidad=="TEC")
+
+cr<-base %>%
+  filter(universidad=="UNA")
+
+ecuador<-base %>%
+  filter(universidad=="USFQ")
+```
+
+```{r}
+# Dimensiones
+
+# Generales
+
+afectiva <- base$AF1 + base$AF2 + base$AF3 + base$AF4 + base$AF5 + base$AF6 + base$AF7 + base$AF8
+social <- base$S1 + base$S2 + base$S3 + base$S4
+academica <- base$AC1 + base$AC2 + base$AC3 + base$AC4
+fisica <- base$F1 + base$F2 + base$F3 + base$F4
+sp <- afectiva + social + academica + fisica
+
+AF <- base[,c(8:15)]
+S <- base[,c(16:19)]
+AC <- base[,c(20:23)]
+FI <- base[,c(24:27)] 
+
+afectiva <- rescale(afectiva, to = c(1,7))
+social <- rescale(social, to = c(1,7))
+academica <- rescale(academica, to = c(1,7))
+fisica <- rescale(fisica, to = c(1,7))
+sp <- rescale(sp, to = c(1,7))
+
+base$afectiva <- afectiva
+base$social <- social
+base$academica <- academica
+base$fisica <- fisica
+base$sp <- sp
+
+# Costa Rica
+
+afectivaCR <- cr$AF1 + cr$AF2 + cr$AF3 + cr$AF4 + cr$AF5 + cr$AF6 + cr$AF7 + cr$AF8
+socialCR <- cr$S1 + cr$S2 + cr$S3 + cr$S4
+academicaCR <- cr$AC1 + cr$AC2 + cr$AC3 + cr$AC4
+fisicaCR <- cr$F1 + cr$F2 + cr$F3 + cr$F4
+spCR <- afectivaCR + socialCR + academicaCR + fisicaCR
+
+AFCR <- cr[,c(8:15)]
+SCR <- cr[,c(16:19)]
+ACCR <- cr[,c(20:23)]
+FICR <- cr[,c(24:27)] 
+
+afectivaCR <- rescale(afectivaCR, to = c(1,7))
+socialCR <- rescale(socialCR, to = c(1,7))
+academicaCR <- rescale(academicaCR, to = c(1,7))
+fisicaCR <- rescale(fisicaCR, to = c(1,7))
+spCR <- rescale(spCR, to = c(1,7))
+
+cr$afectiva <- afectivaCR
+cr$social <- socialCR
+cr$academica <- academicaCR
+cr$fisica <- fisicaCR
+cr$sp <- spCR
+
+# Dimensiones México
+
+afectivaMEX <- mexico$AF1 + mexico$AF2 + mexico$AF3 + mexico$AF4 + mexico$AF5 + mexico$AF6 + mexico$AF7 + mexico$AF8
+socialMEX <- mexico$S1 + mexico$S2 + mexico$S3 + mexico$S4
+academicaMEX <- mexico$AC1 + mexico$AC2 + mexico$AC3 + mexico$AC4
+fisicaMEX <- mexico$F1 + mexico$F2 + mexico$F3 + mexico$F4
+spMEX <- afectivaMEX + socialMEX + academicaMEX + fisicaMEX
+
+AFMEX <- mexico[,c(8:15)]
+SMEX <- mexico[,c(16:19)]
+ACMEX <- mexico[,c(20:23)]
+FIMEX <- mexico[,c(24:27)] 
+
+afectivaMEX <- rescale(afectivaMEX, to = c(1,7))
+socialMEX <- rescale(socialMEX, to = c(1,7))
+academicaMEX <- rescale(academicaMEX, to = c(1,7))
+fisicaMEX <- rescale(fisicaMEX, to = c(1,7))
+spMEX <- rescale(spMEX, to = c(1,7))
+
+mexico$afectiva <- afectivaMEX
+mexico$social <- socialMEX
+mexico$academica <- academicaMEX
+mexico$fisica <- fisicaMEX
+mexico$sp <- spMEX
+
+# Dimensiones Ecuador
+
+afectivaEC <- ecuador$AF1 + ecuador$AF2 + ecuador$AF3 + ecuador$AF4 + ecuador$AF5 + ecuador$AF6 + ecuador$AF7 + ecuador$AF8
+socialEC <- ecuador$S1 + ecuador$S2 + ecuador$S3 + ecuador$S4
+academicaEC <- ecuador$AC1 + ecuador$AC2 + ecuador$AC3 + ecuador$AC4
+fisicaEC <- ecuador$F1 + ecuador$F2 + ecuador$F3 + ecuador$F4
+spEC <- afectivaEC + socialEC + academicaEC + fisicaEC
+
+AFEC <- ecuador[,c(8:15)]
+SEC <- ecuador[,c(16:19)]
+ACEC <- ecuador[,c(20:23)]
+FIEC <- ecuador[,c(24:27)] 
+
+afectivaEC <- rescale(afectivaEC, to = c(1,7))
+socialEC <- rescale(socialEC, to = c(1,7))
+academicaEC <- rescale(academicaEC, to = c(1,7))
+fisicaEC <- rescale(fisicaEC, to = c(1,7))
+spEC <- rescale(spEC, to = c(1,7))
+
+ecuador$afectiva <- afectivaEC
+ecuador$social <- socialEC
+ecuador$academica <- academicaEC
+ecuador$fisica <- fisicaEC
+ecuador$sp <- spEC
+```
+
+```{r}
+# Bases
+view(base)
+view(cr)
+view(mexico)
+view(ecuador)
+```
+
+```{r}
+# Análisis descriptivo
+summary(base)
+
+table(base$genero)
+table(base$zona)
+table(base$area)
+table(base$ingreso)
+table(base$beca)
+table(base$universidad)
+skim(base$genero)
+library(pastecs)
+stat.desc(base$AF1)
+format(stat.desc(base$AF1), scientific = FALSE)
+#me quedé en la dimensión afectiva en el Q1
+```
+
+
+```{r echo=FALSE,include=FALSE}
+# Omegas y Alfas
+
+# General
+omega(AF, nfactors=4)
+omega(S, nfactors=4)
+omega(AC, nfactors=4)
+omega(FI, nfactors=4)
+
+# Costa Rica
+omega(AFCR, nfactors=4)
+omega(SCR, nfactors=4)
+omega(ACCR, nfactors=4)
+omega(FICR, nfactors=4)
+
+# México
+omega(AFMEX, nfactors=4)
+omega(SMEX, nfactors=4)
+omega(ACMEX, nfactors=4)
+omega(FIMEX, nfactors=4)
+
+# Ecuador
+omega(AFEC, nfactors=4)
+omega(SEC, nfactors=4)
+omega(ACEC, nfactors=4)
+omega(FIEC, nfactors=4)
+```
+
+```{r}
+# Confirmatorio (requiere lavaan, semTools, semPlot y Hmisc, tidySEM)
+
+# General
+
+modelo1 <- '
+  subd1 =~ AF1+AF2+AF4
+  subd2 =~ AF3+AF5+AF6+AF7+AF8
+  
+  afectivaC =~ subd1 + subd2
+  
+  socialC =~ S1+S2+S3+S4
+  academicaC =~ AC1+AC2+AC3+AC4
+  fisicaC =~ F1+F2+F3+F4
+  
+  '
+
+cfa1 <- cfa(model=modelo1, data=base, orthogonal = F, std.lv=T, std.ov=T, test = "Satorra.Bentler")
+
+# Costa Rica
+
+cfaCR <- cfa(model=modelo1, data=cr, orthogonal = F, std.lv=T, std.ov=T)
+
+# México
+
+cfaMEX <- cfa(model=modelo1, data=mexico, orthogonal = F, std.lv=T, std.ov=T)
+
+# Ecuador
+
+cfaEC <- cfa(model=modelo1, data=ecuador, orthogonal = F, std.lv=T, std.ov=T)
+```
+
+```{r}
+# Análisis de Confirmatorio
+
+# General
+
+fitmeasures(cfa1, fit.measures="all")
+
+# Costa Rica
+
+fitmeasures(cfaCR, fit.measures="all")
+
+# México
+
+fitmeasures(cfaMEX, fit.measures="all")
+
+# Ecuador
+
+fitmeasures(cfaEC, fit.measures="all")
+```
+
+```{r}
+# Gráfica de Confirmatorio
+
+# General
+
+semPaths(cfa1, residuals = F,
+         sizeMan = 7, "std",
+         posCol = c("skyblue4","red"),
+         edge.color = "skyblue4",
+         edge.label.cex = 1.2,
+         layout = "tree", style = "lisrel", rotation = 4
+         )
+
+# Costa Rica
+
+semPaths(cfaCR, residuals = F,
+         sizeMan = 7, "std",
+         posCol = c("skyblue4","red"),
+         edge.color = "skyblue4",
+         edge.label.cex = 1.2,
+         layout = "tree", style = "lisrel", rotation = 4
+         )
+
+# México
+
+semPaths(cfaMEX, residuals = F,
+         sizeMan = 7, "std",
+         posCol = c("skyblue4","red"),
+         edge.color = "skyblue4",
+         edge.label.cex = 1.2,
+         layout = "tree", style = "lisrel", rotation = 4
+         )
+
+# Ecuador
+
+semPaths(cfaEC, residuals = F,
+         sizeMan = 7, "std",
+         posCol = c("skyblue4","red"),
+         edge.color = "skyblue4",
+         edge.label.cex = 1.2,
+         layout = "tree", style = "lisrel", rotation = 4
+         )
+```
+
+```{r}
+# Pruebas de Normalidad (Anderson-Darling) (requiere nortest)
+
+# General
+
+ad.test(afectiva)
+ad.test(social)
+ad.test(academica)
+ad.test(fisica)
+ad.test(sp)
+
+# Costa Rica
+
+ad.test(afectivaCR)
+ad.test(socialCR)
+ad.test(academicaCR)
+ad.test(fisicaCR)
+
+# México
+
+ad.test(afectivaMEX)
+ad.test(socialMEX)
+ad.test(academicaMEX)
+ad.test(fisicaMEX)
+
+# Ecuador
+
+ad.test(afectivaEC)
+ad.test(socialEC)
+ad.test(academicaEC)
+ad.test(fisicaEC)
+```
+
+```{r}
+# OE2: Relación entre STEM y SP (requiere ggpubr)
+
+# Filtro STEM y no STEM
+
+base$STEM <- base$area
+
+base$STEM[base$STEM %in% c("Ciencias básicas", "Ingeniería")] <- 'STEM'
+base$STEM[base$STEM %in% c("Ciencias sociales", "Artes y humanidades", "Otras")] <- 'No STEM'
+
+# Boxplot
+
+ggboxplot(base, x = "STEM", y = "sp",
+          color = "STEM", palette = c("#00AFBB","#E7B800"),
+          order = c("STEM", "No STEM"),
+          ylab = "Sentido de Pertenencia",
+          xlab = "Tipo de carrera (STEM o No STEM)")
+
+kruskal.test(sp~STEM, data = base)
+
+pairwise.wilcox.test(base$sp, base$STEM, p.adjust.method = "BH")
+
+#tamaño de efecto (requiere el paquete effectsize)
+
+cliff.delta(base$sp, base$STEM, conf.level=.95, 
+                         use.unbiased=TRUE, use.normal=FALSE, 
+                         return.dm=FALSE,
+                         formula = sp~STEM,
+                         data = base)
+```
+
+
+```{r} 
+# OE3: Relación entre universidad y SP (requiere ggpubr)
+
+ggboxplot(base, x = "universidad", y = "sp",
+          color = "universidad", palette = c("#00AFBB","#E7B800","#FC4E07"),
+          order = c("UNA", "TEC", "USFQ"),
+          ylab = "Sentido de Pertenencia",
+          xlab = "Universidad")
+
+kruskal.test(sp~universidad, data = base)
+
+summary(mexico$sp)
+
+pairwise.wilcox.test(base$sp, base$universidad, p.adjust.method = "BH")
+
+rstatix::wilcox_effsize(
+  data = base,
+  formula = sp~universidad,
+  comparisons = NULL,
+  ref.group = NULL,
+  paired = FALSE,
+  alternative = "two.sided",
+  mu = 0,
+  ci = FALSE,
+  conf.level = 0.95,
+  ci.type = "perc",
+  nboot = 1000)
+```
+
+```{r}
+# H1: Nivel y SP
+
+# Filtro
+
+base$nivel <- base$ingreso
+
+base$nivel[base$nivel == '2024'] <- 'Primer nivel'
+base$nivel[base$nivel %in% c("2023", "2020 a 2022", "2019 o antes")] <- 'Niveles superiores'
+
+# Boxplot
+
+ggboxplot(base, x = "nivel", y = "sp",
+          color = "nivel", palette = c("#00AFBB","#E7B800"),
+          order = c("Primer nivel", "Niveles superiores"),
+          ylab = "Sentido de Pertenencia",
+          xlab = "Nivel de carrera")
+
+# Bases por nivel
+
+nivel1 <- base %>%
+  filter(nivel == 'Primer nivel')
+
+summary(nivel1$sp)
+
+nivelsup <- base %>%
+  filter(nivel == 'Niveles superiores')
+
+summary(nivelsup$sp)
+
+# Prueba de hipótesis
+# H0: El grado de sentido de pertenencia de los estudiantes de la UNA, TEC y USFQ de primer nivel es mayor o igual que el de los estudiantes de niveles superiores.
+
+#H1: El grado de sentido de pertenencia de los estudiantes de la UNA, TEC y USFQ de primer nivel es significativamente menor que el de los estudiantes de niveles superiores.
+
+t.test(x = nivel1$sp,
+       y = nivelsup$sp,
+       mu = 0,
+       paired = F,
+       var.equal = F,
+       conf.level = 0.95,
+       alternative = "less")
+
+# Se rechaza H1 :(
+```
+
+```{r}
+#H2: Zona
+
+# Boxplot
+
+ggboxplot(base, x = "zona", y = "sp",
+          color = "zona", palette = c("#00AFBB","#E7B800"),
+          order = c("Urbana", "Rural"),
+          ylab = "Sentido de Pertenencia",
+          xlab = "Zona de residencia")
+
+# Bases por zona
+
+urbana <- base %>%
+  filter(zona == 'Urbana')
+
+rural <- base %>%
+  filter(zona == 'Rural')
+
+# Prueba de hipótesis
+# H0: El grado de sentido de pertenencia de los estudiantes de la UNA, TEC y USFQ de zona rural es mayor o igual que el de los estudiantes de zona urbana.
+
+#H1: El grado de sentido de pertenencia de los estudiantes de la UNA, TEC y USFQ de zona rural es significativamente menor que el de los estudiantes de zona urbana.
+
+t.test(x = rural$sp,
+       y = urbana$sp,
+       mu = 0,
+       paired = F,
+       var.equal = F,
+       conf.level = 0.95,
+       alternative = "less")
+
+# Se rechaza H1 :(
+```
+
+```{r}
+#H3: Beca
+
+# Boxplot
+
+ggboxplot(base, x = "beca", y = "sp",
+          color = "beca", palette = c("#00AFBB","#E7B800"),
+          order = c("Sí", "No"),
+          ylab = "Sentido de Pertenencia",
+          xlab = "Posesión de beca")
+
+# Bases por beca
+
+beca <- base %>%
+  filter(beca == 'Sí')
+
+nobeca <- base %>%
+  filter(beca == 'No')
+
+# Prueba de hipótesis
+
+# H0: El grado de sentido de pertenencia de los estudiantes de la UNA, TEC y USFQ que poseen beca es menor o igual que el de los estudiantes que no poseen beca.
+
+#H1: El grado de sentido de pertenencia de los estudiantes de la UNA, TEC y USFQ que poseen beca es significativamente mayor que el de los estudiantes que no poseen beca.
+
+t.test(x = beca$sp,
+       y = nobeca$sp,
+       mu = 0,
+       paired = F,
+       var.equal = F,
+       conf.level = 0.95,
+       alternative = "great")
+
+# No se rechaza H1 :)
+```
+
+```{r}
+# Extra: Pandemia
+
+# Columna pandemia
+
+base$pandemia <- base$ingreso
+
+base$pandemia[base$pandemia == '2020 a 2022'] <- 'Pandemia'
+base$pandemia[base$pandemia %in% c("2023", "2024")] <- 'Post-pandemia'
+base$pandemia[base$pandemia == '2019 o antes'] <- 'Pre-pandemia'
+
+# Boxplot
+
+ggboxplot(base, x = "pandemia", y = "sp",
+          color = "pandemia", palette = c("#00AFBB","#E7B800", "#FC4E07"),
+          order = c("Pre-pandemia", "Pandemia", "Post-pandemia"),
+          ylab = "Sentido de Pertenencia",
+          xlab = "Ingreso durante pandemia")
+
+# Bases por pandemia
+
+pre <- base %>%
+  filter(beca == 'Pre-pandemia')
+
+pand <- base %>%
+  filter(beca == 'Pandemia')
+
+post <- base %>%
+  filter(beca == 'Post-pandemia')
+
+view(base)
+```
+w
+```{r}
+# Prepatativos ACS (requiere gplots)
+
+base$spCat <- base$sp
+
+base$spCat[base$sp < 3] <- 'Bajo'
+base$spCat[base$sp > 5] <- 'Alto'
+base$spCat[base$spCat !='Bajo' & base$spCat != 'Alto'] <- 'Regular'
+
+tabla1 <- table(base$universidad, base$spCat)
+
+datos.acs <- as.matrix(tabla1)
+
+tabla2 <- prop.table(tabla1,margin=1)
+
+summary(datos.acs)
+```
+```{r}
+# Prueba de independencia Chi-cuadrado
+
+# H0: Las variables son independientes.
+# H1: Las variables no son independientes.
+
+chisq.test(datos.acs)
+
+# Se rechaza H0 :)
+```
+```{r}
+# Análisis de Correspondencia Simple (requiere gmodels y FactoMineR)
+CrossTable(datos.acs, prop.t = F, prop.r = F, prop.c = F, prop.chisq = F)
+
+res.ca <- CA(datos.acs, ncp = 2, graph = T)
+
+fviz_ca_biplot(res.ca, repel = T, title = "Análisis de Correspondencia Simple")
+```
+```{r}
+# Análisis simple -  Género y sentido de pertenencia
+
+#Primero se eliminan los 6 datos de otro
+
+basesinotro <- base[-c(2,3,452,484,597,600),]
+
+tabla2 <- table(basesinotro$genero,basesinotro$spCat) 
+
+datos.acs2 <- as.matrix(tabla2)
+
+# Prueba de independencia Chi-cuadrado
+
+# H0: Las variables son independientes.
+# H1: Las variables no son independientes.
+
+chisq.test(datos.acs2)
+
+# No se rechaza H0 :(
+
+cs <- CA(datos.acs2, ncp=2, graph = T)
+fviz_ca_biplot(cs, repel = T, title = "Análisis de Correspondencia Simple")
+
+```
+```{r}
+# Análisis simple -  zona y sentido de pertenencia
+
+tabla3 <- table(base$zona,base$spCat)
+
+datos.acs3 <- as.matrix(tabla3)
+
+# Prueba de independencia Chi-cuadrado
+
+# H0: Las variables son independientes.
+# H1: Las variables no son independientes.
+
+chisq.test(datos.acs3)
+
+# No se rechaza H0 :(
+
+```
+
+```{r}
+# Análisis simple -  beca y sentido de pertenencia
+
+tabla4 <- table(base$beca,base$spCat)
+
+datos.acs4 <- as.matrix(tabla4)
+
+# Prueba de independencia Chi-cuadrado
+
+# H0: Las variables son independientes.
+# H1: Las variables no son independientes.
+
+chisq.test(datos.acs4)
+
+# Se rechaza H0 :)
+
+rcs <- CA(datos.acs4, ncp = 2, graph = T)
+fviz_ca_biplot(rcs, repel = T, title = "Análisis de Correspondencia Simple")
+```
+
+
+
+
+```{r}
+baseacm <- base %>%
+  select(c("universidad", "STEM", "spCat"))
+
+tablam1 <- table(baseacm)
+
+datos.acm1 <- as.matrix.data.frame(tablam1)
+
+# Prueba de independencia Chi-cuadrado
+
+# H0: Las variables son independientes.
+# H1: Las variables no son independientes.
+
+chisq.test(datos.acm1)
+
+# Se rechaza H0 :)
+
+mult1 <- MCA(baseacm, ncp=5, graph = T)
+
+head(baseacm)
+
+#Diagrama de variables
+
+fviz_mca_var(mult1, choice = c("var.cat", "mca.cor", "var", "quanti.sup"),
+  axes = c(1, 2), geom = c("point", "text"),
+  repel = FALSE, col.var = "red", alpha.var = 1, shape.var = 17,
+  col.quanti.sup = "blue", col.quali.sup = "darkgreen",
+  map = "symmetric")
+
+
+chisq.test(baseacm)
+```
+
+```{r}
+#Análisis género y stem
+baseacm2 <- base %>%
+  select(c("genero", "STEM", "spCat"))
+
+tablam2 <- table(baseacm2)
+
+datos.acm2 <- as.matrix(tabla2)
+
+# Prueba de independencia Chi-cuadrado
+
+# H0: Las variables son independientes.
+# H1: Las variables no son independientes.
+
+chisq.test(datos.acm2)
+
+# No se rechaza H0 :(
+
+```
+
+```{r}
+# Análisis de pandemia y SP (simple)
+
+# Preparativos
+
+tabla2 <- table(base$pandemia, base$spCat)
+
+datos.acs2 <- as.matrix(tabla2)
+
+# Prueba de independencia Chi-cuadrado
+
+# H0: Las variables son independientes.
+# H1: Las variables no son independientes.
+
+chisq.test(datos.acs2)
+
+# No se rechaza H0 :(
+
+```
+
+```{r}
+baseacm3 <- basesinotro %>%
+  select(c("universidad", "STEM", "spCat", "beca", "ingreso", "genero", "zona"))
+
+tablam3 <- table(baseacm3)
+
+datos.acm3 <- as.matrix(tablam3)
+
+# Prueba de independencia Chi-cuadrado
+
+# H0: Las variables son independientes.
+# H1: Las variables no son independientes.
+
+chisq.test(datos.acm3)
+
+# Se rechaza H0 :)
+
+mult3 <- MCA(baseacm3, ncp=5, graph = T)
+
+head(baseacm)
+
+#Diagrama de variables
+
+fviz_mca_var(mult1, choice = c("var.cat", "mca.cor", "var", "quanti.sup"),
+  axes = c(1, 2), geom = c("point", "text"),
+  repel = FALSE, col.var = "red", alpha.var = 1, shape.var = 17,
+  col.quanti.sup = "blue", col.quali.sup = "darkgreen",
+  map = "symmetric")
+
+
+chisq.test(baseacm)
+```
